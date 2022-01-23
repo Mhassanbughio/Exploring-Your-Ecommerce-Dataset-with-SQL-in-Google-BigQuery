@@ -1,0 +1,343 @@
+How to start your lab and sign in to the Google Cloud Console
+Click the Start Lab button. If you need to pay for the lab, a pop-up opens for you to select your payment method. On the left is a panel populated with the temporary credentials that you must use for this lab.
+
+Open Google Console
+
+Copy the username, and then click Open Google Console. The lab spins up resources, and then opens another tab that shows the Sign in page.
+
+Sign in
+
+Tip: Open the tabs in separate windows, side-by-side.
+
+If you see the Choose an account page, click Use Another Account. Choose an account
+In the Sign in page, paste the username that you copied from the left panel. Then copy and paste the password.
+
+Important: You must use the credentials from the left panel. Do not use your Google Cloud Training credentials. If you have your own Google Cloud account, do not use it for this lab (avoids incurring charges).
+
+Click through the subsequent pages:
+
+Accept the terms and conditions.
+Do not add recovery options or two-factor authentication (because this is a temporary account).
+Do not sign up for free trials.
+After a few moments, the Cloud Console opens in this tab.
+
+Note: You can view the menu with a list of Google Cloud Products and Services by clicking the Navigation menu at the top-left. Cloud Console Menu
+Pin the Lab Project in BigQuery
+In this section you add the data-to-insights project to your environment resources.
+
+Click Navigation menu > BigQuery.
+nav_bq.png
+
+The Welcome to BigQuery in the Cloud Console message box opens.
+
+The Welcome to BigQuery in the Cloud Console message box provides a link to the quickstart guide and UI updates.
+Click Done.
+
+BigQuery public datasets are not displayed by default in the BigQuery web UI. To open the public datasets project, open https://console.cloud.google.com/bigquery?project=data-to-insights&page=ecommerce in a new browser window.
+
+In the left pane, in the Explorer section, hover over on data-to-insights and click on Click to pin icon.
+
+pin_project.png
+
+Close this browser window.
+
+Return to and refresh the first BigQuery browser window to refresh the BigQuery web UI.
+
+The data-to-insights project is listed in the Explorer section.
+
+Explore ecommerce data and identify duplicate records
+Scenario: Your data analyst team exported the Google Analytics logs for an ecommerce website into BigQuery and created a new table of all the raw ecommerce visitor session data.
+
+Explore the all_sessions_raw table data:
+
+Click the Expand node icon near data-to-insights to expand the project.
+Expand ecommerce.
+Click all_sessions_raw.
+In the right pane, a section opens that provides 3 views of the table data:
+
+Schema tab: Field name, Type, Mode, and Description; the logical constraints used to organize the data
+
+Details tab: Table metadata
+
+Preview tab: Table preview
+
+Click the Details tab to view the table metadata.
+Details.png
+
+Questions:
+
+
+Which UI tab will show you the data types?
+
+Details
+
+Preview
+
+Schema
+
+
+How many rows are in the dataset?
+
+9990000
+
+Over 21 million
+
+5.63 GB
+
+Identify duplicate rows
+Seeing a sample amount of data may give you greater intuition for what is included in the dataset. To preview sample rows from the table without using SQL, click the preview tab.
+
+Scan and scroll through the rows. There is no singular field that uniquely identifies a row, so you need advanced logic to identify duplicate rows.
+
+The query you'll use (below) uses the SQL GROUP BY function on every field and counts (COUNT) where there are rows that have the same values across every field.
+
+If every field is unique, the COUNT returns 1 as there are no other groupings of rows with the exact same value for all fields.
+If there are multiple rows with the same values for all fields, these rows are grouped together and the COUNT will be greater than 1.
+The last part of the query is an aggregation filter using HAVING to only show the results that have a COUNT of duplicates greater than 1. Therefore, the number of records that have duplicates will be the same as the number of rows in the resulting table.
+
+Copy and paste the following query into the query EDITOR, then RUN query to find which records are duplicated across all columns.
+
+#standardSQL
+SELECT COUNT(*) as num_duplicate_rows, * FROM
+`data-to-insights.ecommerce.all_sessions_raw`
+GROUP BY
+fullVisitorId, channelGrouping, time, country, city, totalTransactionRevenue, transactions, timeOnSite, pageviews, sessionQualityDim, date, visitId, type, productRefundAmount, productQuantity, productPrice, productRevenue, productSKU, v2ProductName, v2ProductCategory, productVariant, currencyCode, itemQuantity, itemRevenue, transactionRevenue, transactionId, pageTitle, searchKeyword, pagePathLevel1, eCommerceAction_type, eCommerceAction_step, eCommerceAction_option
+HAVING num_duplicate_rows > 1;
+Copied!
+
+How many records have duplicates in all_sessions_raw?
+
+615
+
+0
+
+1,015
+
+434
+
+In your own datasets, even if you have a unique key, it is still beneficial to confirm the uniqueness of the rows with COUNT, GROUP BY, and HAVING before you begin your analysis.
+Click Check my progress to verify the objective.
+Identify duplicate rows
+
+Analyze the new all_sessions table
+In this section you use a deduplicated table called all_sessions.
+
+Scenario: Your data analyst team has provided you with this query, and your schema experts have identified the key fields that must be unique for each record per your schema.
+
+Run the query to confirm that no duplicates exist, this time in the all_sessions table:
+
+#standardSQL
+# schema: https://support.google.com/analytics/answer/3437719?hl=en
+SELECT
+fullVisitorId, # the unique visitor ID
+visitId, # a visitor can have multiple visits
+date, # session date stored as string YYYYMMDD
+time, # time of the individual site hit  (can be 0 to many per visitor session)
+v2ProductName, # not unique since a product can have variants like Color
+productSKU, # unique for each product
+type, # a visitor can visit Pages and/or can trigger Events (even at the same time)
+eCommerceAction_type, # maps to ‘add to cart', ‘completed checkout'
+eCommerceAction_step,
+eCommerceAction_option,
+  transactionRevenue, # revenue of the order
+  transactionId, # unique identifier for revenue bearing transaction
+COUNT(*) as row_count
+FROM
+`data-to-insights.ecommerce.all_sessions`
+GROUP BY 1,2,3 ,4, 5, 6, 7, 8, 9, 10,11,12
+HAVING row_count > 1 # find duplicates
+Copied!
+The query returns zero records.
+
+Note: In SQL, you can GROUP BY or ORDER BY the index of the column like using GROUP BY 1 instead of GROUP BY fullVisitorId
+Write basic SQL on ecommerce data
+In this section, you query for insights on the ecommerce dataset.
+
+Write a query that shows total unique visitors
+Your query determines the total views by counting product_views and the number of unique visitors by counting fullVisitorID.
+
+Click + Compose New Query.
+
+Write this query in the editor:
+
+#standardSQL
+SELECT
+  COUNT(*) AS product_views,
+  COUNT(DISTINCT fullVisitorId) AS unique_visitors
+FROM `data-to-insights.ecommerce.all_sessions`;
+Copied!
+To ensure that your syntax is correct, confirm that the real-time query validator shows Green check icon.
+Click Run. Read the results to view the number of unique visitors.
+Results
+
+ee5c2c7ad19434d8.png
+
+Now write a query that shows total unique visitors(fullVisitorID) by the referring site (channelGrouping):
+
+#standardSQL
+SELECT
+  COUNT(DISTINCT fullVisitorId) AS unique_visitors,
+  channelGrouping
+FROM `data-to-insights.ecommerce.all_sessions`
+GROUP BY channelGrouping
+ORDER BY channelGrouping DESC;
+Copied!
+Results
+
+fd68fa5a2954a68d.png
+
+Write a query to list all the unique product names (v2ProductName) alphabetically:
+
+#standardSQL
+SELECT
+  (v2ProductName) AS ProductName
+FROM `data-to-insights.ecommerce.all_sessions`
+GROUP BY ProductName
+ORDER BY ProductName
+Copied!
+Tip: In SQL, the ORDER BY clauses defaults to Ascending (ASC) A-->Z. If you want the reverse, try ORDER BY field_name DESC
+
+
+Which part of the previous query deduplicates the records?
+
+ORDER BY
+
+SELECT
+
+STANDARD SQL
+
+GROUP BY
+
+Results
+
+23d3781795755d18.png
+
+This query returns a total of 633 products (rows).
+
+
+How many distinct product names were returned in total?
+
+511
+
+950
+
+633
+
+10
+
+Write a query to list the five products with the most views (product_views) from all visitors (include people who have viewed the same product more than once). Your query counts number of times a product (v2ProductName) was viewed (product_views), puts the list in descending order, and lists the top 5 entries:
+
+Tip: In Google Analytics, a visitor can "view" a product during the following interaction types: 'page', 'screenview', 'event', 'transaction', 'item', 'social', 'exception', 'timing'. For our purposes, simply filter for only type = 'PAGE'.
+
+#standardSQL
+SELECT
+  COUNT(*) AS product_views,
+  (v2ProductName) AS ProductName
+FROM `data-to-insights.ecommerce.all_sessions`
+WHERE type = 'PAGE'
+GROUP BY v2ProductName
+ORDER BY product_views DESC
+LIMIT 5;
+Copied!
+Results
+
+98024b791d0c01f4.png
+
+Bonus: Now refine the query to no longer double-count product views for visitors who have viewed a product many times. Each distinct product view should only count once per visitor.
+
+WITH unique_product_views_by_person AS (
+-- find each unique product viewed by each visitor
+SELECT
+ fullVisitorId,
+ (v2ProductName) AS ProductName
+FROM `data-to-insights.ecommerce.all_sessions`
+WHERE type = 'PAGE'
+GROUP BY fullVisitorId, v2ProductName )
+-- aggregate the top viewed products and sort them
+SELECT
+  COUNT(*) AS unique_view_count,
+  ProductName
+FROM unique_product_views_by_person
+GROUP BY ProductName
+ORDER BY unique_view_count DESC
+LIMIT 5
+
+Copied!
+Tip: You can use the SQL WITH clause to help break apart a complex query into multiple steps. Here we first create a query that finds each unique product per visitor and counts them once. Then the second query performs the aggregation across all visitors and products.
+
+Results
+
+with-clause-results.png
+
+Next, expand your previous query to include the total number of distinct products ordered and the total number of total units ordered (productQuantity):
+
+#standardSQL
+SELECT
+  COUNT(*) AS product_views,
+  COUNT(productQuantity) AS orders,
+  SUM(productQuantity) AS quantity_product_ordered,
+  v2ProductName
+FROM `data-to-insights.ecommerce.all_sessions`
+WHERE type = 'PAGE'
+GROUP BY v2ProductName
+ORDER BY product_views DESC
+LIMIT 5;
+Copied!
+Results
+
+cefe4bb5b680216e.png
+
+Questions:
+
+
+The product with the most views got the most orders.
+
+True
+
+False
+
+
+What is the difference between orders and quantity_product_ordered?
+
+Nothing, they are the same
+
+order is the number of orders, quantity_product_ordered is the number of items available to be ordered
+
+order is the number of orders, quantity_product_ordered is the number of items ordered
+
+Expand the query to include the average amount of product per order (total number of units ordered/total number of orders, or SUM(productQuantity)/COUNT(productQuantity)).
+
+#standardSQL
+SELECT
+  COUNT(*) AS product_views,
+  COUNT(productQuantity) AS orders,
+  SUM(productQuantity) AS quantity_product_ordered,
+  SUM(productQuantity) / COUNT(productQuantity) AS avg_per_order,
+  (v2ProductName) AS ProductName
+FROM `data-to-insights.ecommerce.all_sessions`
+WHERE type = 'PAGE'
+GROUP BY v2ProductName
+ORDER BY product_views DESC
+LIMIT 5;
+Copied!
+Results
+
+37dd38ee9e9b3532.png
+
+Question:
+
+
+What product has the highest avg_per_order?
+
+YouTube Bottle Infuser
+
+Google Mens Short Sleeve Hero Tee Black
+
+YouTube Custom Decals
+
+The 22 oz YouTube Bottle Infuser had the highest avg_per_order with 9.38 units per order.
+
+Click Check my progress to verify the objective.
+Write basic SQL on ecommerce data
+
+Congratulations!
