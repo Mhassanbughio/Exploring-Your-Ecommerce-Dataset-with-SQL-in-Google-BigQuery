@@ -1,0 +1,2 @@
+# Exploring-Your-Ecommerce-Dataset-with-SQL-in-Google-BigQuery
+BigQuery is Google's fully managed, NoOps, low cost analytics database. With BigQuery you can query terabytes and terabytes of data without having any infrastructure to manage or needing a database administrator. BigQuery uses SQL and can take advantage of the pay-as-you-go model. BigQuery allows you to focus on analyzing data to find meaningful insights.
